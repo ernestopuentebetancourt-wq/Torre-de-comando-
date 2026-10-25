@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Control Tower &amp; Sala de Consejo</title>
+<style>
+:root{--bg:#0e1116;--sf:#171b22;--s2:#1f242d;--bd:#2b313b;--tx:#e8eaed;--mt:#8b93a1;--ac:#f2b84b;--ok:#4ac28a;--er:#ef6b6b;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+header{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
+h1{font-size:17px;margin:0;font-weight:650}
+h2{font-size:14px;margin:18px 0 8px;font-weight:600;color:var(--mt)}
+main{flex:1;overflow-y:auto;padding:12px 16px 24px;max-width:900px;width:100%;margin:0 auto}
+nav{display:flex;border-top:1px solid var(--bd);background:var(--sf);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;min-height:52px;background:none;border:0;color:var(--mt);font:inherit;font-size:13px}
+nav button.on{color:var(--ac);box-shadow:inset 0 2px 0 var(--ac)}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+textarea,input,select{width:100%;background:var(--s2);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:11px 12px;font:inherit;font-size:16px;margin:4px 0 8px}
+textarea{min-height:96px;resize:vertical}
+label{font-size:13px;color:var(--mt)}
+.b{min-height:44px;border-radius:10px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-weight:600;padding:0 14px;width:100%;margin:4px 0}
+.p{background:var(--ac);color:#1a1405;border-color:var(--ac)}
+.sm{width:auto;min-height:36px;font-size:13px;margin:4px 6px 0 0}
+button:disabled{opacity:.5}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sw{position:relative;width:48px;height:28px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;width:100%;height:100%;z-index:2}
+.sw i{position:absolute;inset:0;background:var(--s2);border:1px solid var(--bd);border-radius:20px;transition:.2s}
+.sw i:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--mt);transition:.2s}
+.sw input:checked+i{background:var(--ac);border-color:var(--ac)}
+.sw input:checked+i:after{transform:translateX(20px);background:#1a1405}
+.res{white-space:pre-wrap;word-break:break-word;font-size:14px;margin-top:6px;max-height:280px;overflow:auto}
+.err{color:var(--er)}.mt{color:var(--mt);font-size:13px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px}
+.chip{flex:none;border:1px solid var(--bd);border-radius:20px;padding:8px 14px;font:inherit;font-size:13px;background:var(--sf);color:var(--tx)}
+.chip.on{border-color:var(--ac);color:var(--ac)}
+pre{white-space:pre-wrap;word-break:break-word;font-size:12.5px;background:var(--s2);border-radius:10px;padding:10px;max-height:320px;overflow:auto;margin:8px 0}
+#lock{position:fixed;inset:0;background:var(--bg);z-index:9;display:flex;padding:24px}
+#lock>div{width:100%;max-width:380px;margin:auto}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(70px + env(safe-area-inset-bottom));max-width:600px;margin:auto;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:12px;font-size:14px;display:none;z-index:10}
+</style>
+</head>
+<body>
+<div id="lock"><div>
+  <h1 style="font-size:22px">Control Tower &amp; Sala de Consejo</h1>
+  <p class="mt" id="lm">Tus claves y tu CRM se cifran con AES-256-GCM en este dispositivo. Crea una contraseña maestra.</p>
+  <input id="pass" type="password" placeholder="Contraseña maestra" autocomplete="current-password">
+  <input id="pass2" type="password" placeholder="Repite la contraseña" style="display:none">
+  <button class="b p" id="unlock">Desbloquear</button>
+  <div id="le" class="err mt"></div>
+</div></div>
+
+<header><h1>Control Tower</h1><span class="mt" id="st"></span></header>
+<main>
+<section class="tab on" id="t-hub">
+  <h2>Consulta rápida a todas las IAs activas</h2>
+  <textarea id="hq" placeholder="Ej.: ¿Qué margen mínimo necesito para vender lámparas LED en Shopify?"></textarea>
+  <button class="b p" id="hsend">Consultar en paralelo</button>
+  <div id="hres"></div>
+  <button class="b" id="h2c" style="display:none">Llevar esta consulta a la Sala de Consejo</button>
+</section>
+
+<section class="tab" id="t-con">
+  <h2>Requerimiento estratégico</h2>
+  <textarea id="cq" placeholder="Ej.: Evalúa la viabilidad de importar este producto de Alibaba y crear la ficha en Shopify: …"></textarea>
+  <label>Modelo que emite el dictamen final</label><select id="judge"></select>
+  <button class="b p" id="convene">Convocar al Consejo (3 rondas)</button>
+  <div id="cr"></div>
+  <div id="cact" style="display:none">
+    <button class="b" id="csave">Guardar minuta en el CRM</button>
+    <button class="b" id="cship">Enviar ficha a Shopify (borrador)</button>
+    <button class="b" id="cjson">Exportar resolución (JSON)</button>
+  </div>
+</section>
+
+<section class="tab" id="t-crm">
+  <div class="chips" id="ctabs"></div>
+  <div class="card" id="cform"></div>
+  <div id="clist"></div>
+  <div class="row"><button class="b sm" data-x="csv">CSV</button><button class="b sm" data-x="xls">Excel</button><button class="b sm" data-x="json">JSON</button></div>
+  <h2>Tienda y proveedores</h2>
+  <div class="row" style="flex-wrap:wrap"><button class="b sm" data-sh="products">Productos</button><button class="b sm" data-sh="orders">Pedidos</button><button class="b sm" data-sh="inventory">Inventario</button></div>
+  <input id="alq" placeholder="Buscar en Alibaba (palabra clave)">
+  <button class="b" id="alGo">Buscar en Alibaba</button>
+  <pre id="out">Sin datos todavía.</pre>
+</section>
+
+<section class="tab" id="t-set">
+  <h2>Proveedores de IA</h2>
+  <div id="pl"></div>
+  <button class="b" id="padd">+ Añadir proveedor de IA</button>
+  <div class="card" id="pf" style="display:none">
+    <label>Nombre</label><input id="f-name">
+    <label>Tipo de API</label><select id="f-type"><option value="openai">OpenAI / compatible (DeepSeek, OpenRouter…)</option><option value="gemini">Google Gemini</option><option value="claude">Anthropic Claude</option></select>
+    <label>Endpoint (vacío = el oficial)</label><input id="f-url" autocapitalize="off" placeholder="https://api.deepseek.com/chat/completions">
+    <label>API key</label><input id="f-key" type="password" autocomplete="off">
+    <label>Modelo</label><input id="f-model" autocapitalize="off">
+    <label>Rol</label><input id="f-role" placeholder="Analista de Mercado, Copywriter, Estratega Financiero…">
+    <button class="b p" id="fsave">Guardar proveedor</button><button class="b" id="fcancel">Cancelar</button>
+  </div>
+  <h2>Shopify</h2>
+  <div class="card"><label>Dominio</label><input data-k="shop.domain" placeholder="mitienda.myshopify.com" autocapitalize="off"><label>Admin API token</label><input data-k="shop.token" type="password" autocomplete="off"></div>
+  <h2>Alibaba / proveedores externos</h2>
+  <div class="card">
+    <label>Endpoint</label><input data-k="ali.url" autocapitalize="off"><label>Método de la API</label><input data-k="ali.method" autocapitalize="off">
+    <label>App key</label><input data-k="ali.key" type="password" autocomplete="off"><label>App secret</label><input data-k="ali.secret" type="password" autocomplete="off">
+    <label>Autenticación</label><select data-k="ali.auth"><option value="sign">Firma HMAC-SHA256</option><option value="bearer">Bearer con la app key</option><option value="none">Ninguna</option></select>
+  </div>
+  <h2>Proxy anti-CORS</h2>
+  <div class="card"><p class="mt">Recibe POST con {url, method, headers, body} y reenvía la petición. Obligatorio para Shopify y Alibaba.</p>
+    <label>URL del proxy</label><input data-k="proxy" autocapitalize="off">
+    <div class="row"><label>Enviar también las llamadas de IA por el proxy</label><span class="sw"><input type="checkbox" data-k="aiProxy"><i></i></span></div></div>
+  <button class="b p" id="save">Guardar cifrado</button>
+  <button class="b" id="lockBtn">Bloquear</button>
+  <button class="b" id="wipe" style="color:var(--er)">Borrar bóveda</button>
+</section>
+</main>
+<div id="toast"></div>
+<nav><button class="on" data-t="hub">Hub</button><button data-t="con">Consejo</button><button data-t="crm">CRM y tienda</button><button data-t="set">Bóveda</button></nav>
+
+<script>
+const $=id=>document.getElementById(id),enc=new TextEncoder(),dec=new TextDecoder();
+const DEF=()=>({cfg:{providers:[],shop:{},ali:{auth:'sign'},proxy:'',aiProxy:false},crm:{products:[],suppliers:[],leads:[],quotes:[],minutes:[]}});
+let db=DEF(),key=null,salt=null,C=null,editId=null,cur='products';
+const SCH={products:['name','sku','cost','price','notes'],suppliers:['name','contact','url','moq','notes'],leads:['name','contact','status','notes'],quotes:['client','item','amount','date','notes'],minutes:['date','req','final']};
+const LBL={products:'Productos',suppliers:'Proveedores',leads:'Leads',quotes:'Cotizaciones',minutes:'Minutas',name:'Nombre',sku:'SKU',cost:'Costo',price:'Precio',notes:'Notas',contact:'Contacto',url:'URL',moq:'MOQ',status:'Estado',client:'Cliente',item:'Artículo',amount:'Monto',date:'Fecha',req:'Requerimiento',final:'Resolución'};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const g=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
+const sset=(o,p,v)=>{const a=p.split('.'),l=a.pop();a.reduce((x,k)=>x[k]=x[k]||{},o)[l]=v};
+function toast(m,e){const t=$('toast');t.textContent=m;t.style.color=e?'var(--er)':'var(--tx)';t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',4000)}
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))),ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const LS={get:k=>{try{return localStorage.getItem(k)}catch{return null}},set:(k,v)=>{try{localStorage.setItem(k,v);return true}catch{return false}},del:k=>{try{localStorage.removeItem(k)}catch{}}};
+
+/* ---------- bóveda AES-GCM + PBKDF2 ---------- */
+async function derive(p,s){const m=await crypto.subtle.importKey('raw',enc.encode(p),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:250000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function saveV(){const iv=crypto.getRandomValues(new Uint8Array(12));const d=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(db)));if(!LS.set('vault2',JSON.stringify({s:b64(salt),iv:b64(iv),d:b64(d)})))throw new Error('No se pudo guardar en este navegador.')}
+async function openV(p){const v=JSON.parse(LS.get('vault2'));salt=ub(v.s);key=await derive(p,salt);const x=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub(v.iv)},key,ub(v.d))));const d=DEF();db={cfg:{...d.cfg,...x.cfg},crm:{...d.crm,...x.crm}}}
+const has=!!LS.get('vault2');
+if(!has){$('pass2').style.display='block'}else $('lm').textContent='Introduce tu contraseña maestra.';
+if(!(window.crypto&&crypto.subtle))$('le').textContent='El cifrado requiere HTTPS. Abre la app desde tu dirección de GitHub Pages.';
+$('unlock').onclick=async()=>{const p=$('pass').value;$('le').textContent='';
+  try{if(p.length<8)throw new Error('Usa al menos 8 caracteres.');
+    if(has)await openV(p);else{if(p!==$('pass2').value)throw new Error('Las contraseñas no coinciden.');salt=crypto.getRandomValues(new Uint8Array(16));key=await derive(p,salt);await saveV()}
+    $('lock').style.display='none';$('pass').value=$('pass2').value='';init()}catch(x){$('le').textContent=has?'Contraseña incorrecta o bóveda dañada.':x.message}};
+$('pass').onkeydown=e=>{if(e.key==='Enter')$('unlock').click()};
+const persist=async()=>{try{await saveV()}catch(e){toast(e.message,true)}};
+
+/* ---------- red ---------- */
+const JH={'content-type':'application/json'};
+async function req(url,o={},via=false){const c=new AbortController(),t=setTimeout(()=>c.abort(),60000);
+  try{let r;if(via){if(!db.cfg.proxy)throw new Error('Configura la URL del proxy en Bóveda.');
+      r=await fetch(db.cfg.proxy,{method:'POST',headers:JH,body:JSON.stringify({url,method:o.method||'GET',headers:o.headers||{},body:o.body||null}),signal:c.signal})}
+    else r=await fetch(url,{...o,signal:c.signal});
+    const tx=await r.text();let j;try{j=JSON.parse(tx)}catch{j=tx}
+    if(!r.ok)throw new Error('HTTP '+r.status+': '+(typeof j==='string'?j:JSON.stringify(j.error||j)).slice(0,300));return j}
+  catch(e){throw new Error(e.name==='AbortError'?'Tiempo agotado (60 s).':e.name==='TypeError'?'Error de red o CORS. Prueba con el proxy.':e.message)}finally{clearTimeout(t)}}
+
+/* ---------- proveedores de IA ---------- */
+async function callAI(p,prompt){
+  if(!p.key)throw new Error('Falta la API key de '+p.name+'.');
+  const sys='Eres '+(p.role||'asesor comercial')+' en un consejo de e-commerce. Responde en español, con cifras y sin relleno.',v=db.cfg.aiProxy;
+  if(p.type==='gemini'){const j=await req(p.url||'https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(p.model)+':generateContent',{method:'POST',headers:{...JH,'x-goog-api-key':p.key},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{parts:[{text:prompt}]}]})},v);return j.candidates[0].content.parts.map(x=>x.text||'').join('')}
+  if(p.type==='claude'){const j=await req(p.url||'https://api.anthropic.com/v1/messages',{method:'POST',headers:{...JH,'x-api-key':p.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:p.model,max_tokens:1800,system:sys,messages:[{role:'user',content:prompt}]})},v);return j.content.filter(b=>b.type==='text').map(b=>b.text).join('')}
+  const j=await req(p.url||'https://api.openai.com/v1/chat/completions',{method:'POST',headers:{...JH,authorization:'Bearer '+p.key},body:JSON.stringify({model:p.model,messages:[{role:'system',content:sys},{role:'user',content:prompt}]})},v);return j.choices[0].message.content}
+const act=()=>db.cfg.providers.filter(p=>p.on);
+const round=(ps,fn)=>Promise.all(ps.map(async p=>{try{return[p.id,{t:await fn(p)}]}catch(e){return[p.id,{e:e.message}]}}));
+const pname=id=>{const p=db.cfg.providers.find(x=>x.id===id);return p?p.name+' · '+(p.role||'sin rol'):id};
+const card=(id,r)=>'<div class="card"><b>'+esc(pname(id))+'</b><div class="res '+(r.e?'err':'')+'">'+esc(r.e||r.t)+'</div></div>';
+
+/* ---------- navegación ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+function go(t){document.querySelectorAll('nav button,.tab').forEach(x=>x.classList.remove('on'));document.querySelector('nav [data-t='+t+']').classList.add('on');$('t-'+t).classList.add('on')}
+
+/* ---------- Hub ---------- */
+$('hsend').onclick=async()=>{const q=$('hq').value.trim(),ps=act();if(!q)return toast('Escribe una consulta.',true);if(!ps.length)return toast('Activa al menos un proveedor en Bóveda.',true);
+  $('hsend').disabled=true;$('hres').innerHTML='<p class="mt">Consultando a '+ps.length+' modelo(s)…</p>';
+  const r=await round(ps,p=>callAI(p,q));$('hres').innerHTML=r.map(([id,x])=>card(id,x)).join('');$('h2c').style.display='block';$('hsend').disabled=false};
+$('h2c').onclick=()=>{$('cq').value=$('hq').value;go('con')};
+
+/* ---------- Sala de Consejo ---------- */
+function rend(){if(!C)return;let h='';
+  const sec=(t,o)=>Object.keys(o).length?'<h2>'+t+'</h2>'+Object.entries(o).map(([i,r])=>card(i,r)).join(''):'';
+  h+=sec('Ronda 1 · Propuestas iniciales',C.r1)+sec('Ronda 2 · Crítica cruzada',C.r2);
+  if(C.msg)h+='<p class="mt">'+esc(C.msg)+'</p>';
+  if(C.fin)h+='<h2>Ronda 3 · Dictamen final</h2><div class="card"><div class="res" style="max-height:none">'+esc(C.fin)+'</div></div>';
+  $('cr').innerHTML=h;$('cact').style.display=C.fin?'block':'none'}
+const ok=(o)=>Object.keys(o).filter(i=>o[i].t);
+const others=(o,self)=>ok(o).filter(i=>i!==self).map(i=>'### '+pname(i)+'\n'+o[i].t).join('\n\n');
+$('convene').onclick=async()=>{const q=$('cq').value.trim(),ps=act();
+  if(!q)return toast('Escribe el requerimiento.',true);if(ps.length<1)return toast('Activa al menos un proveedor en Bóveda.',true);
+  const jp=db.cfg.providers.find(p=>p.id===$('judge').value)||ps[0];
+  C={q,r1:{},r2:{},fin:'',json:null,msg:'Ronda 1 en curso…'};$('convene').disabled=true;rend();
+  try{
+    (await round(ps,p=>callAI(p,'Requerimiento del consejo:\n'+q+'\n\nDa tu diagnóstico según tu rol: viabilidad, riesgos, precios y márgenes, y recomendación concreta.'))).forEach(([i,r])=>C.r1[i]=r);
+    const g1=ps.filter(p=>C.r1[p.id].t);if(!g1.length)throw new Error('Ninguna IA respondió en la Ronda 1. Revisa las claves y los errores.');
+    if(g1.length>1){C.msg='Ronda 2 en curso…';rend();
+      (await round(g1,p=>callAI(p,'Requerimiento original:\n'+q+'\n\nPropuestas de tus colegas:\n'+others(C.r1,p.id)+'\n\nCritícalas desde tu rol: señala errores de precios, margen, costos o código, y propón mejoras concretas.'))).forEach(([i,r])=>C.r2[i]=r)}
+    C.msg='Dictamen final en curso…';rend();
+    const all=ok(C.r1).map(i=>'### '+pname(i)+'\n'+C.r1[i].t).join('\n\n'),cr=others(C.r2,'');
+    C.fin=await callAI(jp,'Eres el presidente del consejo. Requerimiento:\n'+q+'\n\nPropuestas:\n'+all+'\n\nCríticas cruzadas:\n'+(cr||'(no hubo)')+'\n\nRedacta la RESOLUCIÓN FINAL UNIFICADA: decisión, conclusiones, riesgos y pasos a seguir numerados. Al final añade un bloque ```json con {"title":"","body_html":"","tags":[],"price":"0.00","vendor":"","product_type":""} para la ficha de Shopify (si no aplica, usa {}).');
+    const m=C.fin.match(/```json\s*([\s\S]*?)```/g);if(m){try{C.json=JSON.parse(m[m.length-1].replace(/```json|```/g,''))}catch{}}
+    C.msg='';toast('Consejo concluido.')
+  }catch(e){C.msg='';toast(e.message,true)}
+  $('convene').disabled=false;rend()};
+$('csave').onclick=async()=>{db.crm.minutes.push({id:uid(),date:new Date().toISOString().slice(0,16).replace('T',' '),req:C.q,final:C.fin});await persist();toast('Minuta guardada en el CRM.');if(cur==='minutes')crm()};
+$('cjson').onclick=()=>dl(JSON.stringify({requerimiento:C.q,ronda1:C.r1,ronda2:C.r2,resolucion:C.fin,ficha:C.json},null,2),'resolucion.json','application/json');
+$('cship').onclick=()=>draft(C.json);
+
+/* ---------- Shopify / Alibaba ---------- */
+const shReq=(path,o={})=>{const s=db.cfg.shop;if(!s.domain||!s.token)throw new Error('Configura dominio y token de Shopify en Bóveda.');
+  return req('https://'+s.domain.replace(/^https?:\/\//,'').replace(/\/$/,'')+'/admin/api/2025-01'+path,{...o,headers:{...JH,'x-shopify-access-token':s.token}},true)};
+async function draft(p){if(!p||!p.title)return toast('No hay una ficha válida con título.',true);
+  if(!confirm('Crear “'+p.title+'” como borrador en Shopify.'))return;
+  try{const j=await shReq('/products.json',{method:'POST',body:JSON.stringify({product:{title:p.title,body_html:p.body_html||'',vendor:p.vendor||'',product_type:p.product_type||'',tags:(p.tags||[]).join(','),status:'draft',variants:[{price:String(p.price||'0.00')}]}})});toast('Borrador creado (ID '+j.product.id+').')}catch(e){toast(e.message,true)}}
+document.querySelectorAll('[data-sh]').forEach(b=>b.onclick=async()=>{const k=b.dataset.sh,o=$('out');o.textContent='Cargando…';
+  try{if(k==='products'){const j=await shReq('/products.json?limit=10&fields=title,status,variants');o.textContent=j.products.map(p=>p.title+' ['+p.status+']').join('\n')||'Sin productos.'}
+    if(k==='orders'){const j=await shReq('/orders.json?status=any&limit=10&fields=name,total_price,currency,financial_status,fulfillment_status');o.textContent=j.orders.map(x=>x.name+' · '+x.total_price+' '+x.currency+' · '+x.financial_status+' · '+(x.fulfillment_status||'sin enviar')).join('\n')||'Sin pedidos.'}
+    if(k==='inventory'){const j=await shReq('/products.json?limit=20&fields=title,variants');o.textContent=j.products.map(p=>p.title+': '+p.variants.map(v=>v.inventory_quantity).join(', ')+' uds').join('\n')||'Sin datos.'}}
+  catch(e){o.textContent='Error: '+e.message}});
+$('alGo').onclick=async()=>{const q=$('alq').value.trim(),a=db.cfg.ali,o=$('out');if(!q)return toast('Escribe una palabra clave.',true);
+  try{if(!a.url)throw new Error('Configura el endpoint de Alibaba en Bóveda.');o.textContent='Buscando…';const P={...(a.method?{method:a.method}:{}),...(a.key?{app_key:a.key}:{}),keyword:q};let h={};
+    if(a.auth==='sign'){if(!a.key||!a.secret)throw new Error('Faltan app key y secret.');P.timestamp=String(Date.now());P.sign_method='sha256';
+      const hk=await crypto.subtle.importKey('raw',enc.encode(a.secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+      P.sign=[...new Uint8Array(await crypto.subtle.sign('HMAC',hk,enc.encode(Object.keys(P).sort().map(k=>k+P[k]).join(''))))].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase()}
+    if(a.auth==='bearer')h.authorization='Bearer '+a.key;
+    o.textContent=JSON.stringify(await req(a.url+(a.url.includes('?')?'&':'?')+new URLSearchParams(P),{method:'GET',headers:h},true),null,2)}catch(e){o.textContent='Error: '+e.message}};
+
+/* ---------- CRM y exportación ---------- */
+function crm(){$('ctabs').innerHTML=Object.keys(SCH).map(k=>'<button class="chip '+(k===cur?'on':'')+'" data-c="'+k+'">'+LBL[k]+' ('+db.crm[k].length+')</button>').join('');
+  $('cform').style.display=cur==='minutes'?'none':'block';
+  $('cform').innerHTML=SCH[cur].map(f=>'<label>'+LBL[f]+'</label><input data-f="'+f+'">').join('')+'<button class="b p" id="cadd">Añadir</button>';
+  $('clist').innerHTML=db.crm[cur].map(r=>'<div class="card"><b>'+esc(r[SCH[cur][0]])+'</b><div class="mt">'+SCH[cur].slice(1).map(f=>r[f]?LBL[f]+': '+esc(String(r[f]).slice(0,140)):'').filter(Boolean).join(' · ')+'</div><button class="b sm" data-del="'+r.id+'">Eliminar</button>'+(cur==='products'?'<button class="b sm" data-ship="'+r.id+'">A Shopify</button>':'')+(cur==='minutes'?'<button class="b sm" data-view="'+r.id+'">Ver</button>':'')+'</div>').join('')||'<p class="mt">Sin registros.</p>'}
+$('ctabs').onclick=e=>{if(e.target.dataset.c){cur=e.target.dataset.c;crm()}};
+$('cform').onclick=async e=>{if(e.target.id!=='cadd')return;const r={id:uid()};$('cform').querySelectorAll('[data-f]').forEach(i=>r[i.dataset.f]=i.value.trim());
+  if(!r[SCH[cur][0]])return toast('Completa al menos “'+LBL[SCH[cur][0]]+'”.',true);db.crm[cur].push(r);await persist();crm()};
+$('clist').onclick=async e=>{const d=e.target.dataset,L=db.crm[cur];
+  if(d.del&&confirm('¿Eliminar este registro?')){db.crm[cur]=L.filter(r=>r.id!==d.del);await persist();crm()}
+  if(d.ship){const r=L.find(x=>x.id===d.ship);draft({title:r.name,body_html:r.notes,price:r.price})}
+  if(d.view){$('out').textContent=L.find(x=>x.id===d.view).final;$('out').scrollIntoView({behavior:'smooth'})}};
+function dl(txt,name,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+txt],{type:mime+';charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
+document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{const f=SCH[cur],L=db.crm[cur];if(!L.length)return toast('No hay registros que exportar.',true);const k=b.dataset.x,n='crm-'+cur;
+  if(k==='json')return dl(JSON.stringify(L,null,2),n+'.json','application/json');
+  if(k==='csv')return dl([f.map(x=>LBL[x])].concat(L.map(r=>f.map(x=>r[x]??''))).map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n'),n+'.csv','text/csv');
+  const row=a=>'<Row>'+a.map(c=>'<Cell><Data ss:Type="String">'+esc(c)+'</Data></Cell>').join('')+'</Row>';
+  dl('<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="'+LBL[cur]+'"><Table>'+row(f.map(x=>LBL[x]))+L.map(r=>row(f.map(x=>r[x]??''))).join('')+'</Table></Worksheet></Workbook>',n+'.xls','application/vnd.ms-excel')});
+
+/* ---------- Bóveda: proveedores y ajustes ---------- */
+function plist(){$('pl').innerHTML=db.cfg.providers.map(p=>'<div class="card"><div class="row"><div><b>'+esc(p.name)+'</b><div class="mt">'+esc(p.type)+' · '+esc(p.model)+' · '+esc(p.role||'sin rol')+'</div></div><span class="sw"><input type="checkbox" data-on="'+p.id+'"'+(p.on?' checked':'')+'><i></i></span></div><button class="b sm" data-ed="'+p.id+'">Editar</button><button class="b sm" data-rm="'+p.id+'">Eliminar</button></div>').join('')||'<p class="mt">Aún no hay proveedores. Añade el primero.</p>';
+  $('judge').innerHTML=db.cfg.providers.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
+  const n=act().length;$('st').textContent=n+' IA activa'+(n===1?'':'s')}
+$('padd').onclick=()=>openF(null);$('fcancel').onclick=()=>$('pf').style.display='none';
+function openF(id){editId=id;const p=db.cfg.providers.find(x=>x.id===id)||{type:'openai'};
+  ['name','type','url','key','model','role'].forEach(k=>$('f-'+k).value=p[k]||'');$('pf').style.display='block';$('pf').scrollIntoView({behavior:'smooth'})}
+$('fsave').onclick=async()=>{const p={id:editId||uid(),on:true};['name','type','url','key','model','role'].forEach(k=>p[k]=$('f-'+k).value.trim());
+  if(!p.name||!p.model)return toast('Nombre y modelo son obligatorios.',true);
+  const i=db.cfg.providers.findIndex(x=>x.id===editId);if(i>=0){p.on=db.cfg.providers[i].on;db.cfg.providers[i]=p}else db.cfg.providers.push(p);
+  await persist();$('pf').style.display='none';plist();toast('Proveedor guardado.')};
+$('pl').onclick=async e=>{const d=e.target.dataset;if(d.ed)openF(d.ed);
+  if(d.rm&&confirm('¿Eliminar este proveedor?')){db.cfg.providers=db.cfg.providers.filter(p=>p.id!==d.rm);await persist();plist()}};
+$('pl').onchange=async e=>{const id=e.target.dataset.on;if(id){db.cfg.providers.find(p=>p.id===id).on=e.target.checked;await persist();plist()}};
+$('save').onclick=async()=>{document.querySelectorAll('[data-k]').forEach(i=>sset(db.cfg,i.dataset.k,i.type==='checkbox'?i.checked:i.value.trim()));await persist();toast('Configuración guardada y cifrada.')};
+$('lockBtn').onclick=()=>location.reload();
+$('wipe').onclick=()=>{if(confirm('Se borrarán claves y CRM de este dispositivo. ¿Continuar?')){LS.del('vault2');location.reload()}};
+function init(){document.querySelectorAll('[data-k]').forEach(i=>{const v=g(db.cfg,i.dataset.k);if(i.type==='checkbox')i.checked=!!v;else i.value=v||(i.tagName==='SELECT'?i.options[0].value:'')});plist();crm()}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
